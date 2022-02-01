@@ -36,7 +36,7 @@ class Acoustics:
         self.DOWNSAMPLE_RATIO = 0
         self.DOWNSAMPLE_RATIO_MODE = 0 # PS4000a_RATIO_MODE_NONE
         self.MAX_ADC = ctypes.c_int16(32767) # max ADC count value
-        self.buffer_max = (ctypes.c_int16 * self.MAX_SAMPLES)
+        self.buffer_max = (ctypes.c_int16 * self.MAX_SAMPLES)()
         self.adc_2mV_maxes = []
 
     def initialize(self):
@@ -51,18 +51,18 @@ class Acoustics:
             power_status = self.status["openunit"]
             if power_status == 286:
                 self.status["changePowerSource"] = \
-                        ps.ps4000aChangePowerSource(chandle, power_status)
+                        ps.ps4000aChangePowerSource(self.chandle, power_status)
             else:
                 raise
             assert_pico_ok(self.status["changePowerSource"])
         self.open_channels()
-        self.set_trigger(1)
+        self.set_trigger(0)
 
     def open_channels(self):
         ENABLED = 1
         i = self.channels.__len__()
         while i > 0:
-            self.status["setCh" + i] = \
+            self.status["setCh" + str(i)] = \
                 ps.ps4000aSetChannel(self.chandle, i, ENABLED, \
                 self.COUPLING_TYPE, self.RANGE, self.ANALOG_OFFSET)
             i -= 1
@@ -139,7 +139,7 @@ class Acoustics:
             i -= 1
 
     def buffers(self):
-        buffer_min = (ctypes.c_int16 * self.MAX_SAMPLES)
+        buffer_min = (ctypes.c_int16 * self.MAX_SAMPLES)()
         i = self.channels.__len__()
         while i > 0:
             self.status["setDataBuffers" + str(i)] = ps.ps4000aSetDataBuffers(self.chandle, i, \
