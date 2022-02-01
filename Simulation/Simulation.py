@@ -51,7 +51,6 @@ class Pinger(object):
 
     def introduce_noise(self, mean, var):
         noise = np.random.normal(mean, var, size = len(self.ping.time))
-        print(noise)
         self.ping.add_noise(noise)
 
 class Hydrophone(object):
