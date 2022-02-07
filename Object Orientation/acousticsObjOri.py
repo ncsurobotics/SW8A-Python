@@ -53,6 +53,13 @@ class Acoustics:
         self.buffer_max = (ctypes.c_int16 * self.MAX_SAMPLES)()
         self.adc_2mV_maxes = []
 
+        # Extra ctypes
+        self.ready = ctypes.c_int16(0)
+        self.check = ctypes.c_int16(0)
+        self.overflow = ctypes.c_int16() # create overflow location
+        self.C_MAX_SAMPLES = ctypes.c_int32(self.MAX_SAMPLES) # create converted type maxSamples
+        self.buffer_min = (ctypes.c_int16 * self.MAX_SAMPLES)()
+
     def initialize(self):
         '''Sets up the physical PicoScope interface.'''
 
@@ -132,19 +139,15 @@ class Acoustics:
         assert_pico_ok(self.status["runBlock"])
 
         # Wait for data collection to finish
-        ready = ctypes.c_int16(0)
-        check = ctypes.c_int16(0)
-        while ready.value == check.value:
-            self.status["isReady"] = ps.ps4000aIsReady(self.chandle, ctypes.byref(ready))
+        while self.ready.value == self.check.value:
+            self.status["isReady"] = ps.ps4000aIsReady(self.chandle, ctypes.byref(self.ready))
 
         self.buffers()
-        overflow = ctypes.c_int16() # create overflow location
-        C_MAX_SAMPLES = ctypes.c_int32(self.MAX_SAMPLES) # create converted type maxSamples
 
         # Retrieve buffer data
         self.status["getValues"] = ps.ps4000aGetValues(self.chandle, self.START_INDEX, \
-                ctypes.byref(C_MAX_SAMPLES), self.DOWNSAMPLE_RATIO, self.DOWNSAMPLE_RATIO_MODE, \
-                0, ctypes.byref(overflow))
+                ctypes.byref(self.C_MAX_SAMPLES), self.DOWNSAMPLE_RATIO, self.DOWNSAMPLE_RATIO_MODE, \
+                0, ctypes.byref(self.overflow))
         assert_pico_ok(self.status["getValues"])
 
         # ADC counts to mV
@@ -156,11 +159,10 @@ class Acoustics:
     def buffers(self):
         '''Creates buffers to capture data.'''
 
-        buffer_min = (ctypes.c_int16 * self.MAX_SAMPLES)()
         i = self.channels.__len__()
         while i > 0:
             self.status["setDataBuffers" + str(i)] = ps.ps4000aSetDataBuffers(self.chandle, i, \
-                    ctypes.byref(self.buffer_max), ctypes.byref(buffer_min), self.MAX_SAMPLES, self.SEGMENT_INDEX, self.MODE)
+                    ctypes.byref(self.buffer_max), ctypes.byref(self.buffer_min), self.MAX_SAMPLES, self.SEGMENT_INDEX, self.MODE)
             assert_pico_ok(self.status["setDataBuffers" + str(i)])
             i -= 1
 
