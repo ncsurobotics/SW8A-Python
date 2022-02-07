@@ -82,8 +82,7 @@ class Acoustics:
 
         Goes from 0 to one less than channels size.'''
 
-        i = self.channels.__len__()
-        while i > 0:
+        for i in range(0, self.channels.__len__() - 1):
             self.status["setCh" + str(i)] = \
                 ps.ps4000aSetChannel(self.chandle, i, self.ENABLED, \
                 self.COUPLING_TYPE, self.RANGE, self.ANALOG_OFFSET)
@@ -151,16 +150,14 @@ class Acoustics:
         assert_pico_ok(self.status["getValues"])
 
         # ADC counts to mV
-        i = self.channels.__len__()
-        while i < 0:
+        for i in range(0, self.channels.__len__() - 1):
             self.adc_2mV_maxes[i] = adc2mV(self.buffer_max, self.RANGE, self.MAX_ADC)
             i -= 1
 
     def buffers(self):
         '''Creates buffers to capture data.'''
 
-        i = self.channels.__len__()
-        while i > 0:
+        for i in range(0, self.channels.__len__() - 1):
             self.status["setDataBuffers" + str(i)] = ps.ps4000aSetDataBuffers(self.chandle, i, \
                     ctypes.byref(self.buffer_max), ctypes.byref(self.buffer_min), self.MAX_SAMPLES, self.SEGMENT_INDEX, self.MODE)
             assert_pico_ok(self.status["setDataBuffers" + str(i)])
