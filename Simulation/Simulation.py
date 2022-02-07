@@ -33,6 +33,11 @@ class Ping(object):
 
     def add_noise(self, noise):
         self.ping_values = np.add(self.ping_values, noise)
+
+    def add_dead_time(self, length):
+        self.ping_values = np.pad(self.ping_values, (length, length), 'constant', constant_values = (0, 0))
+        self.set_end_time(self.end_time + 2*length*self.sampling_period)
+        self.time = np.arange(0, self.end_time, self.sampling_period)
     
 class Pinger(object):
     # location is a vector - (x,y,z) coordinates of the pinger
