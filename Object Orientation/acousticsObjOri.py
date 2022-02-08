@@ -42,7 +42,7 @@ class Acoustics:
         self.THRESHOLD = 8200 # ADC counts
         self.DIRECTION = 2 # PS4000a_RISING
         self.DELAY = 0 # seconds
-        self.AUTO_TRIGGER = 0 # milliseconds
+        self.AUTO_TRIGGER = 00 # milliseconds
 
         # Buffer Attributes
         self.MODE = 0 # PS4000A_RATIO_MODE_NONE
@@ -75,7 +75,7 @@ class Acoustics:
                 raise
             assert_pico_ok(self.status["changePowerSource"])
         self.open_channels()
-        self.set_trigger(0)
+        self.set_trigger(1)
 
     def open_channels(self):
         '''Creates a connection for each channel.
