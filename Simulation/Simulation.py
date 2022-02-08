@@ -76,7 +76,5 @@ class Hydrophone(object):
     def set_received_data(self, received_data):
         self.received_data = received_data
 
-
-class Simulation(object):
-    def __init__(self, place_holder):
-        self.place_holder = place_holder
+    def adjust_delay(self, time_shift):
+        self.received_data = np.roll(self.received_data[1], time_shift)
