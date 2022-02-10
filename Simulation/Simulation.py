@@ -62,19 +62,20 @@ class Hydrophone(object):
     # location is a vector - (x,y,z) coordinates of the hydrophone
     # recieved_data is a vector of the data and the time it was read
     # in the same format as when we do actual tests
-    def __init__(self, location, received_data):
+    def __init__(self, location, received_time, received_data):
         self.location = location
+        self.received_time = received_time
         self.received_data = received_data
 
     #setters
     def set_location(self, location):
         self.location = location
-        
-    def set_size(self,size):
-        self.size = size
+
+    def set_receieved_time(self, received_time):
+        self.received_time = received_time
         
     def set_received_data(self, received_data):
         self.received_data = received_data
 
     def adjust_delay(self, time_shift):
-        self.received_data = np.roll(self.received_data[1], time_shift)
+        self.received_data = np.roll(self.received_data, time_shift)

@@ -4,6 +4,7 @@ from Simulation import Ping
 from Simulation import Pinger
 from Simulation import Hydrophone
 import matplotlib.pyplot as plt
+from acousticsObjOri import Acoustics
 
 speed_of_sound = 1480
 end = 4e-3
