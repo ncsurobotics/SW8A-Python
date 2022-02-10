@@ -8,7 +8,9 @@ class Acoustics:
     def __init__(self, run_name, num_channels, delta_x, delta_z):
         self.pitch = 0;
         self.yaw = 0;
-        self.channels = [[]*num_channels]
+        self.channels = [[]]
+        for i in range(1, num_channels):
+            self.channels.append([])
         self.run_name = run_name
         self.delta_x = delta_x
         self.delta_z = delta_z
@@ -75,18 +77,16 @@ class Acoustics:
                 raise
             assert_pico_ok(self.status["changePowerSource"])
         self.open_channels()
-        self.set_trigger(1)
 
     def open_channels(self):
         '''Creates a connection for each channel.
 
         Goes from 0 to one less than channels size.'''
 
-        for i in range(0, self.channels.__len__() - 1):
+        for i in range(0, len(self.channels) - 1):
             self.status["setCh" + str(i)] = \
                 ps.ps4000aSetChannel(self.chandle, i, self.ENABLED, \
                 self.COUPLING_TYPE, self.RANGE, self.ANALOG_OFFSET)
-            i -= 1
 
     def set_trigger(self, i):
         '''Sets a sampling threshold.
@@ -97,7 +97,6 @@ class Acoustics:
 
         self.status["trigger"] = ps.ps4000aSetSimpleTrigger(self.chandle, self.ENABLED, \
                 i, self.THRESHOLD, self.DIRECTION, self.DELAY, self.AUTO_TRIGGER)
-        assert_pico_ok(self.status["trigger"])
 
 
     def time_difference(self, channel_one, channel_two):
@@ -125,6 +124,8 @@ class Acoustics:
     def run(self):
         '''Collects samples from the PicoScope.'''
 
+        self.set_trigger(1)
+
         # Timebase information
         self.status["getTimebase2"] = ps.ps4000aGetTimebase2(self.chandle, self.TIMEBASE, \
                 self.MAX_SAMPLES, ctypes.byref(self.time_interval_ns), \
@@ -150,18 +151,16 @@ class Acoustics:
         assert_pico_ok(self.status["getValues"])
 
         # ADC counts to mV
-        for i in range(0, self.channels.__len__() - 1):
-            self.adc_2mV_maxes[i] = adc2mV(self.buffer_max, self.RANGE, self.MAX_ADC)
-            i -= 1
+        for i in range(0, len(self.channels) - 1):
+            self.adc_2mV_maxes.append(adc2mV(self.buffer_max, self.RANGE, self.MAX_ADC))
 
     def buffers(self):
         '''Creates buffers to capture data.'''
 
-        for i in range(0, self.channels.__len__() - 1):
+        for i in range(0, len(self.channels) - 1):
             self.status["setDataBuffers" + str(i)] = ps.ps4000aSetDataBuffers(self.chandle, i, \
                     ctypes.byref(self.buffer_max), ctypes.byref(self.buffer_min), self.MAX_SAMPLES, self.SEGMENT_INDEX, self.MODE)
             assert_pico_ok(self.status["setDataBuffers" + str(i)])
-            i -= 1
 
     def c_val(self, delta_a, delta_t):
         d = delta_t * 1480
