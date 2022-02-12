@@ -31,9 +31,11 @@ class Ping(object):
         self.time = np.arange(0, self.end_time, self.sampling_period)
         self.ping_values = self.intensity * np.sin(self.time * self.frequency * 2 * np.pi)
 
+    #add noise to the ping
     def add_noise(self, noise):
         self.ping_values = np.add(self.ping_values, noise)
 
+    #add a buffer before and after the ping of dead time
     def add_dead_time(self, length):
         self.ping_values = np.pad(self.ping_values, (length, length), 'constant', constant_values = (0, 0))
         self.set_end_time(self.end_time + 2*length*self.sampling_period)
@@ -54,6 +56,7 @@ class Pinger(object):
     def set_ping(self, ping):
         self.ping = ping
 
+    #calculates the noise to be added to the system
     def introduce_noise(self, mean, var):
         noise = np.random.normal(mean, var, size = len(self.ping.time))
         self.ping.add_noise(noise)
@@ -77,5 +80,6 @@ class Hydrophone(object):
     def set_received_data(self, received_data):
         self.received_data = received_data
 
+    #shift the ping based in a time delay
     def adjust_delay(self, time_shift):
         self.received_data = np.roll(self.received_data, time_shift)
