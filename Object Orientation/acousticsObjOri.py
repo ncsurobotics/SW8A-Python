@@ -2,14 +2,17 @@ import math
 import ctypes
 from picosdk.ps4000a import ps4000a as ps
 from picosdk.functions import adc2mV, assert_pico_ok
+import numpy as np
+import matplotlib.pyplot as plt
+import csv
 
 class Acoustics:
 
     def __init__(self, run_name, num_channels, delta_x, delta_z):
         self.pitch = 0;
         self.yaw = 0;
-        self.channels = [[]]
-        for i in range(1, num_channels):
+        self.channels = []
+        for i in range(0, num_channels):
             self.channels.append([])
         self.run_name = run_name
         self.delta_x = delta_x
@@ -83,7 +86,7 @@ class Acoustics:
 
         Goes from 0 to one less than channels size.'''
 
-        for i in range(0, len(self.channels) - 1):
+        for i in range(0, len(self.channels)):
             self.status["setCh" + str(i)] = \
                 ps.ps4000aSetChannel(self.chandle, i, self.ENABLED, \
                 self.COUPLING_TYPE, self.RANGE, self.ANALOG_OFFSET)
@@ -151,13 +154,13 @@ class Acoustics:
         assert_pico_ok(self.status["getValues"])
 
         # ADC counts to mV
-        for i in range(0, len(self.channels) - 1):
+        for i in range(0, len(self.channels)):
             self.adc_2mV_maxes.append(adc2mV(self.buffer_max, self.RANGE, self.MAX_ADC))
 
     def buffers(self):
         '''Creates buffers to capture data.'''
 
-        for i in range(0, len(self.channels) - 1):
+        for i in range(0, len(self.channels)):
             self.status["setDataBuffers" + str(i)] = ps.ps4000aSetDataBuffers(self.chandle, i, \
                     ctypes.byref(self.buffer_max), ctypes.byref(self.buffer_min), self.MAX_SAMPLES, self.SEGMENT_INDEX, self.MODE)
             assert_pico_ok(self.status["setDataBuffers" + str(i)])
@@ -166,6 +169,18 @@ class Acoustics:
         d = delta_t * 1480
         c = (d**2) / ( (delta_a**2) - d**2)
 
+    def plot(self):
+        # Create time data
+        time = np.linspace(0, (self.C_MAX_SAMPLES.value) * self.time_interval_ns.value, self.C_MAX_SAMPLES.value)
+        fig, axs = plt.subplots(len(self.channels))
+        for i in range(0, len(self.channels)):
+            axs[i].plot(time, self.adc_2mV_maxes[i][:])
+            axs[i].title.set_text("Channel " + str(i))
+        plt.xlabel('Time (ns)')
+        plt.ylabel('Voltage (mV)')
+
+    def show(self):
+        plt.show()
     def pitch_yaw(self,C1,C2):
         arg1 = math.sqrt( (C1 + 1) / (C2 + C1 * C2) )
         arg2 = math.sqrt( (C1 + C1 * C2) / (1 - C1 * C2) )
