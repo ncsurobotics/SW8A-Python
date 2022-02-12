@@ -30,7 +30,7 @@ class Acoustics:
         self.PRE_TRIGGER_SAMPLES = 20000
         self.POST_TRIGGER_SAMPLES = 60000
         self.MAX_SAMPLES = self.PRE_TRIGGER_SAMPLES + self.POST_TRIGGER_SAMPLES
-        self.TIMEBASE = 64 # No idea what period this is
+        self.TIMEBASE = 800 # period = 12.5 ns * (TIMEBASE + 1)
         self.TIME_INDISPOSED = None # milliseconds
         self.SEGMENT_INDEX = 0
         self.LP_READY = None # uses ps4000aIsReady, not ps4000aBlockReady
@@ -55,7 +55,12 @@ class Acoustics:
         self.DOWNSAMPLE_RATIO = 0
         self.DOWNSAMPLE_RATIO_MODE = 0 # PS4000a_RATIO_MODE_NONE
         self.MAX_ADC = ctypes.c_int16(32767) # max ADC count value
-        self.buffer_max = (ctypes.c_int16 * self.MAX_SAMPLES)()
+        self.buffer_maxes = []
+        for i in range(0, num_channels):
+            self.buffer_maxes.append( (ctypes.c_int16 * self.MAX_SAMPLES)() )
+        self.buffer_mins = []
+        for i in range(0, num_channels):
+            self.buffer_mins.append( (ctypes.c_int16 * self.MAX_SAMPLES)() )
         self.adc_2mV_maxes = []
 
         # Extra ctypes
@@ -63,7 +68,6 @@ class Acoustics:
         self.check = ctypes.c_int16(0)
         self.overflow = ctypes.c_int16() # create overflow location
         self.C_MAX_SAMPLES = ctypes.c_int32(self.MAX_SAMPLES) # create converted type maxSamples
-        self.buffer_min = (ctypes.c_int16 * self.MAX_SAMPLES)()
 
     def initialize(self):
         '''Sets up the physical PicoScope interface.'''
@@ -155,14 +159,14 @@ class Acoustics:
 
         # ADC counts to mV
         for i in range(0, len(self.channels)):
-            self.adc_2mV_maxes.append(adc2mV(self.buffer_max, self.RANGE, self.MAX_ADC))
+            self.adc_2mV_maxes.append(adc2mV(self.buffer_maxes[i], self.RANGE, self.MAX_ADC))
 
     def buffers(self):
         '''Creates buffers to capture data.'''
 
         for i in range(0, len(self.channels)):
             self.status["setDataBuffers" + str(i)] = ps.ps4000aSetDataBuffers(self.chandle, i, \
-                    ctypes.byref(self.buffer_max), ctypes.byref(self.buffer_min), self.MAX_SAMPLES, self.SEGMENT_INDEX, self.MODE)
+                    ctypes.byref(self.buffer_maxes[i]), ctypes.byref(self.buffer_mins[i]), self.MAX_SAMPLES, self.SEGMENT_INDEX, self.MODE)
             assert_pico_ok(self.status["setDataBuffers" + str(i)])
 
     def c_val(self, delta_a, delta_t):
@@ -178,9 +182,8 @@ class Acoustics:
             axs[i].title.set_text("Channel " + str(i))
         plt.xlabel('Time (ns)')
         plt.ylabel('Voltage (mV)')
-
-    def show(self):
         plt.show()
+
     def pitch_yaw(self,C1,C2):
         arg1 = math.sqrt( (C1 + 1) / (C2 + C1 * C2) )
         arg2 = math.sqrt( (C1 + C1 * C2) / (1 - C1 * C2) )
