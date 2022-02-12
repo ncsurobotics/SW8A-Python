@@ -5,6 +5,8 @@ from picosdk.functions import adc2mV, assert_pico_ok
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
+import os
+from datetime import date
 
 class Acoustics:
 
@@ -173,16 +175,57 @@ class Acoustics:
         d = delta_t * 1480
         c = (d**2) / ( (delta_a**2) - d**2)
 
+    def stop(self):
+        ''' Stops the PicoScope. '''
+
+        self.status["stop"] = ps.ps4000aStop(self.chandle)
+        assert_pico_ok(self.status["stop"])
+        self.status["close"] = ps.ps400aCloseUnit(self.chandle)
+        assert_pico_ok(self.status["close"])
+
+    def get_time(self):
+        ''' Returns the linearly spaced time.
+            Only works properly after run(). '''
+
+        return np.linspace(0, (self.C_MAX_SAMPLES.value) * self.time_interval_ns.value, self.C_MAX_SAMPLES.value)
+
     def plot(self):
-        # Create time data
-        time = np.linspace(0, (self.C_MAX_SAMPLES.value) * self.time_interval_ns.value, self.C_MAX_SAMPLES.value)
-        fig, axs = plt.subplots(len(self.channels))
-        for i in range(0, len(self.channels)):
+        ''' Creates a plot for all channels.
+            Used by show_plot() and write_plot(). '''
+
+        time = self.get_time()
+        fig, axs = plt.subplots(len(self.adc_2mV_maxes))
+        for i in range(0, len(self.adc_2mV_maxes)):
             axs[i].plot(time, self.adc_2mV_maxes[i][:])
             axs[i].title.set_text("Channel " + str(i))
         plt.xlabel('Time (ns)')
         plt.ylabel('Voltage (mV)')
+
+    def show_plot(self):
+        ''' Displays a plot in an X11 frame. '''
+        self.plot()
         plt.show()
+
+    def write_plot(self):
+        ''' Writes a plot image to a png. '''
+        self.plot()
+        if not os.path.exists(str(date.today())):
+            os.mkdir(str(date.today()))
+        plt.savefig(str(date.today()) + "/" + str(self.run_name) + ".png")
+
+    def write_csv(self):
+        ''' Writes the data as a csv. '''
+        if not os.path.exists(str(date.today())):
+            os.mkdir(str(date.today()))
+        titles = ["time"]
+        for i in range(0, len(self.adc_2mV_maxes)):
+            titles.append("Channel_" + str(i))
+        with open(str(date.today()) + "/" + str(self.run_name) + ".csv", 'w') as f:
+            writer = csv.writer(f)
+            writer.writerow(titles)
+            writer.writerow(self.get_time())
+            for adc_max in self.adc_2mV_maxes:
+                writer.writerow(adc_max[:])
 
     def pitch_yaw(self,C1,C2):
         arg1 = math.sqrt( (C1 + 1) / (C2 + C1 * C2) )
