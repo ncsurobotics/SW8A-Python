@@ -1,6 +1,6 @@
 import math
 import ctypes
-from picosdk.ps2000 import ps2000 as ps
+from picosdk.ps2000a import ps2000a as ps
 from picosdk.functions import adc2mV, assert_pico2000_ok
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,7 +36,7 @@ class Acoustics:
         self.TIMEBASE = 13 # period = 2^(TIMEBASE) / 500,000,000 seconds
         self.TIME_INDISPOSED = None # milliseconds
         self.SEGMENT_INDEX = 0
-        self.LP_READY = None # uses ps2000IsReady, not ps2000BlockReady
+        self.LP_READY = None # uses ps2000aIsReady, not ps2000aBlockReady
         self.P_PARAMETER = None
 
         # Channel attributes
@@ -80,7 +80,7 @@ class Acoustics:
         '''Sets up the physical PicoScope interface.'''
 
         self.plotted = False
-        self.status["openunit"] = ps.ps2000_open_unit(ctypes.byref(self.chandle), None)
+        self.status["openunit"] = ps.ps2000a_open_unit(ctypes.byref(self.chandle), None)
         assert_pico2000_ok(self.status["openunit"])
         self.open_channels()
 
@@ -91,7 +91,7 @@ class Acoustics:
 
         for i in range(0, len(self.channels)):
             self.status["setCh" + str(i)] = \
-                ps.ps2000_set_channel(self.chandle, i, self.ENABLED, \
+                ps.ps2000aSetChannel(self.chandle, i, self.ENABLED, \
                 self.COUPLING_TYPE, self.RANGE, self.ANALOG_OFFSET)
 
     def set_trigger(self, i):
@@ -101,7 +101,7 @@ class Acoustics:
             i: The channel number to watch
         '''
 
-        self.status["trigger"] = ps.ps2000_set_simple_trigger(self.chandle, self.ENABLED, \
+        self.status["trigger"] = ps.ps2000aSetSimpleTrigger(self.chandle, self.ENABLED, \
                 i, self.THRESHOLD, self.DIRECTION, self.DELAY, self.AUTO_TRIGGER)
 
 
@@ -133,25 +133,25 @@ class Acoustics:
         self.set_trigger(0)
 
         # Timebase information
-        self.status["getTimebase2"] = ps.ps2000_get_timebase_2(self.chandle, self.TIMEBASE, \
+        self.status["getTimebase2"] = ps.ps2000aGetTimebase2(self.chandle, self.TIMEBASE, \
                 self.MAX_SAMPLES, ctypes.byref(self.time_interval_ns), \
                 self.OVERSAMPLE, ctypes.byref(self.returned_max_samples), 0)
         assert_pico2000_ok(self.status["getTimebase2"])
 
         # Block capture
-        self.status["runBlock"] = ps.ps2000_run_block(self.chandle, self.PRE_TRIGGER_SAMPLES, \
+        self.status["runBlock"] = ps.ps2000aRunBlock(self.chandle, self.PRE_TRIGGER_SAMPLES, \
                 self.POST_TRIGGER_SAMPLES, self.TIMEBASE, self.OVERSAMPLE, \
                 self.TIME_INDISPOSED, self.SEGMENT_INDEX, self.LP_READY, self.P_PARAMETER)
         assert_pico2000_ok(self.status["runBlock"])
 
         # Wait for data collection to finish
         while self.ready.value == self.check.value:
-            self.status["isReady"] = ps.ps2000_is_ready(self.chandle, ctypes.byref(self.ready))
+            self.status["isReady"] = ps.ps2000aIsReady(self.chandle, ctypes.byref(self.ready))
 
         self.buffers()
 
         # Retrieve buffer data
-        self.status["getValues"] = ps.ps2000_get_values(self.chandle, self.START_INDEX, \
+        self.status["getValues"] = ps.ps2000aGetValues(self.chandle, self.START_INDEX, \
                 ctypes.byref(self.C_MAX_SAMPLES), self.DOWNSAMPLE_RATIO, self.DOWNSAMPLE_RATIO_MODE, \
                 0, ctypes.byref(self.overflow))
         assert_pico2000_ok(self.status["getValues"])
@@ -164,7 +164,7 @@ class Acoustics:
         '''Creates buffers to capture data.'''
 
         for i in range(0, len(self.channels)):
-            self.status["setDataBuffers" + str(i)] = ps.ps2000_set_data_buffers(self.chandle, i, \
+            self.status["setDataBuffers" + str(i)] = ps.ps2000aSetDataBuffers(self.chandle, i, \
                     ctypes.byref(self.buffer_maxes[i]), ctypes.byref(self.buffer_mins[i]), self.MAX_SAMPLES, self.SEGMENT_INDEX, self.MODE)
             assert_pico2000_ok(self.status["setDataBuffers" + str(i)])
 
@@ -175,9 +175,9 @@ class Acoustics:
     def stop(self):
         ''' Stops the PicoScope. '''
 
-        self.status["stop"] = ps.ps2000_stop(self.chandle)
+        self.status["stop"] = ps.ps2000aStop(self.chandle)
         assert_pico2000_ok(self.status["stop"])
-        self.status["close"] = ps.ps2000_close_unit(self.chandle)
+        self.status["close"] = ps.ps2000aCloseUnit(self.chandle)
         assert_pico2000_ok(self.status["close"])
 
     def get_time(self):
