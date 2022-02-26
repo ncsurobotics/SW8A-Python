@@ -124,9 +124,9 @@ class Acoustics:
         k = len(channel_one)
         i = len(channel_two)
 
-        for n in RANGE(0, k + i - 1):
+        for n in range(0, k + i - 1):
             cross_correlation[n] = 0
-            for m in RANGE(0,k - 1):
+            for m in range(0,k - 1):
                 if(m + n - (k - 1) < 0):
                     cross_correlation[n] = cross_correlation[n] + 0
                 else:
