@@ -32,7 +32,8 @@ class Acoustics:
         self.PRE_TRIGGER_SAMPLES = 20000
         self.POST_TRIGGER_SAMPLES = 60000
         self.MAX_SAMPLES = self.PRE_TRIGGER_SAMPLES + self.POST_TRIGGER_SAMPLES
-        self.TIMEBASE = 800 # period = 12.5 ns * (TIMEBASE + 1)
+        # period of about 1.6 e-5 seconds
+        self.TIMEBASE = 13 # period = 2^(TIMEBASE) / 500,000,000 seconds
         self.TIME_INDISPOSED = None # milliseconds
         self.SEGMENT_INDEX = 0
         self.LP_READY = None # uses ps2000IsReady, not ps2000BlockReady
