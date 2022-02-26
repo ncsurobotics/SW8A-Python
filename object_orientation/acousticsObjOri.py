@@ -40,13 +40,14 @@ class Acoustics:
 
         # Channel attributes
         self.COUPLING_TYPE = 1 # PS4000a_DC
-        self.RANGE = 7 # PS4000a_2V
+        self.RANGE = 7 # PS4000a_2V, 2V range
         self.ANALOG_OFFSET = 0 # in volts
         # Channel/Trigger attributes
         self.ENABLED = 1
 
         # Trigger attributes
-        self.THRESHOLD = 8200 # ADC counts
+        # Trigger = self.RANGE * (self.THRESHOLD / 32767)
+        self.THRESHOLD = 8200 # ADC counts, ~0.5 V
         self.DIRECTION = 2 # PS4000a_RISING
         self.DELAY = 0 # seconds
         self.AUTO_TRIGGER = 00 # milliseconds
@@ -71,9 +72,13 @@ class Acoustics:
         self.overflow = ctypes.c_int16() # create overflow location
         self.C_MAX_SAMPLES = ctypes.c_int32(self.MAX_SAMPLES) # create converted type maxSamples
 
+        # Plotting
+        self.plotted = False
+
     def initialize(self):
         '''Sets up the physical PicoScope interface.'''
 
+        self.plotted = False
         self.status["openunit"] = ps.ps4000aOpenUnit(ctypes.byref(self.chandle), None)
         try:
             assert_pico_ok(self.status["openunit"])
@@ -133,7 +138,7 @@ class Acoustics:
     def run(self):
         '''Collects samples from the PicoScope.'''
 
-        self.set_trigger(1)
+        self.set_trigger(0)
 
         # Timebase information
         self.status["getTimebase2"] = ps.ps4000aGetTimebase2(self.chandle, self.TIMEBASE, \
@@ -180,7 +185,7 @@ class Acoustics:
 
         self.status["stop"] = ps.ps4000aStop(self.chandle)
         assert_pico_ok(self.status["stop"])
-        self.status["close"] = ps.ps400aCloseUnit(self.chandle)
+        self.status["close"] = ps.ps4000aCloseUnit(self.chandle)
         assert_pico_ok(self.status["close"])
 
     def get_time(self):
@@ -193,6 +198,8 @@ class Acoustics:
         ''' Creates a plot for all channels.
             Used by show_plot() and write_plot(). '''
 
+        if self.plotted:
+            return
         time = self.get_time()
         fig, axs = plt.subplots(len(self.adc_2mV_maxes))
         for i in range(0, len(self.adc_2mV_maxes)):
@@ -200,6 +207,7 @@ class Acoustics:
             axs[i].title.set_text("Channel " + str(i))
         plt.xlabel('Time (ns)')
         plt.ylabel('Voltage (mV)')
+        self.plotted = True
 
     def show_plot(self):
         ''' Displays a plot in an X11 frame. '''
