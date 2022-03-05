@@ -1,7 +1,7 @@
 import math
 import ctypes
 from picosdk.ps2000a import ps2000a as ps
-from picosdk.functions import adc2mV, assert_pico2000_ok
+from picosdk.functions import adc2mV, assert_pico_ok
 import numpy as np
 import matplotlib.pyplot as plt
 import csv
@@ -26,14 +26,15 @@ class Acoustics:
         self.status = {}
         self.time_interval_ns = ctypes.c_float()
         self.returned_max_samples = ctypes.c_int32()
-        self.OVERSAMPLE = ctypes.c_int16() # Not used by API, but still a param
+        self.OVERSAMPLE = ctypes.c_int16(0) # Not used by API, but still a param
 
         # Run attributes
-        self.PRE_TRIGGER_SAMPLES = 20000
-        self.POST_TRIGGER_SAMPLES = 60000
+        self.PRE_TRIGGER_SAMPLES = 3500
+        self.POST_TRIGGER_SAMPLES = 8500
         self.MAX_SAMPLES = self.PRE_TRIGGER_SAMPLES + self.POST_TRIGGER_SAMPLES
         # period of about 1.6 e-5 seconds
-        self.TIMEBASE = 13 # period = 2^(TIMEBASE) / 500,000,000 seconds
+        #self.TIMEBASE = 13 # period = (n-2) / 62,500,000 seconds
+        self.TIMEBASE = 4000 # period = (n-2) / 62,500,000 seconds
         self.TIME_INDISPOSED = None # milliseconds
         self.SEGMENT_INDEX = 0
         self.LP_READY = None # uses ps2000aIsReady, not ps2000aBlockReady
@@ -80,8 +81,8 @@ class Acoustics:
         '''Sets up the physical PicoScope interface.'''
 
         self.plotted = False
-        self.status["openunit"] = ps.ps2000a_open_unit(ctypes.byref(self.chandle), None)
-        assert_pico2000_ok(self.status["openunit"])
+        self.status["openunit"] = ps.ps2000aOpenUnit(ctypes.byref(self.chandle), None)
+        assert_pico_ok(self.status["openunit"])
         self.open_channels()
 
     def open_channels(self):
@@ -136,13 +137,13 @@ class Acoustics:
         self.status["getTimebase2"] = ps.ps2000aGetTimebase2(self.chandle, self.TIMEBASE, \
                 self.MAX_SAMPLES, ctypes.byref(self.time_interval_ns), \
                 self.OVERSAMPLE, ctypes.byref(self.returned_max_samples), 0)
-        assert_pico2000_ok(self.status["getTimebase2"])
+        assert_pico_ok(self.status["getTimebase2"])
 
         # Block capture
         self.status["runBlock"] = ps.ps2000aRunBlock(self.chandle, self.PRE_TRIGGER_SAMPLES, \
                 self.POST_TRIGGER_SAMPLES, self.TIMEBASE, self.OVERSAMPLE, \
                 self.TIME_INDISPOSED, self.SEGMENT_INDEX, self.LP_READY, self.P_PARAMETER)
-        assert_pico2000_ok(self.status["runBlock"])
+        assert_pico_ok(self.status["runBlock"])
 
         # Wait for data collection to finish
         while self.ready.value == self.check.value:
@@ -154,7 +155,7 @@ class Acoustics:
         self.status["getValues"] = ps.ps2000aGetValues(self.chandle, self.START_INDEX, \
                 ctypes.byref(self.C_MAX_SAMPLES), self.DOWNSAMPLE_RATIO, self.DOWNSAMPLE_RATIO_MODE, \
                 0, ctypes.byref(self.overflow))
-        assert_pico2000_ok(self.status["getValues"])
+        assert_pico_ok(self.status["getValues"])
 
         # ADC counts to mV
         for i in range(0, len(self.channels)):
@@ -166,7 +167,7 @@ class Acoustics:
         for i in range(0, len(self.channels)):
             self.status["setDataBuffers" + str(i)] = ps.ps2000aSetDataBuffers(self.chandle, i, \
                     ctypes.byref(self.buffer_maxes[i]), ctypes.byref(self.buffer_mins[i]), self.MAX_SAMPLES, self.SEGMENT_INDEX, self.MODE)
-            assert_pico2000_ok(self.status["setDataBuffers" + str(i)])
+            assert_pico_ok(self.status["setDataBuffers" + str(i)])
 
     def c_val(self, delta_a, delta_t):
         d = delta_t * 1480
@@ -176,9 +177,9 @@ class Acoustics:
         ''' Stops the PicoScope. '''
 
         self.status["stop"] = ps.ps2000aStop(self.chandle)
-        assert_pico2000_ok(self.status["stop"])
+        assert_pico_ok(self.status["stop"])
         self.status["close"] = ps.ps2000aCloseUnit(self.chandle)
-        assert_pico2000_ok(self.status["close"])
+        assert_pico_ok(self.status["close"])
 
     def get_time(self):
         ''' Returns the linearly spaced time.
