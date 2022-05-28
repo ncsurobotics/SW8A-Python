@@ -3,6 +3,9 @@ from picosdk.ps2000a import ps2000a as ps
 
 class Pico_2000a(Acoustics):
 
+    def __init__(self, num_channels = 4, delta_x = 0, delta_z = 0):
+        super().__init__(num_channels, delta_x, delta_z)
+
     def init_run_attributes(self):
         self.PRE_TRIGGER_SAMPLES = 3500
         self.POST_TRIGGER_SAMPLES = 8500
@@ -62,7 +65,7 @@ class Pico_2000a(Acoustics):
         '''Creates a connection for each channel.
 
         Goes from 0 to one less than channels size.'''
-        for i in range(0, len(super().channels)):
+        for i in range(0, len(self.channels)):
             self.status["setCh" + str(i)] = \
                 ps.ps2000aSetChannel(self.chandle, i, self.ENABLED, \
                 self.COUPLING_TYPE, self.RANGE, self.ANALOG_OFFSET)
@@ -77,13 +80,13 @@ class Pico_2000a(Acoustics):
             auto_trigger: milliseconds to trigger without passing threshold
         '''
         self.status["trigger"] = ps.ps2000aSetSimpleTrigger(self.chandle, self.ENABLED, \
-                i, volts_to_adc(threshold), self.DIRECTION, delay, auto_trigger)
+                trigger_channel, super().volts_to_adc(threshold), self.DIRECTION, delay, auto_trigger)
 
     def buffers(self):
         '''Creates buffers to capture data.'''
-        for i in range(0, len(super().channels)):
+        for i in range(0, len(self.channels)):
             self.status["setDataBuffers" + str(i)] = ps.ps2000aSetDataBuffers(self.chandle, i, \
-                    ctypes.byref(super().buffer_maxes[i]), ctypes.byref(super().buffer_mins[i]), self.MAX_SAMPLES, self.SEGMENT_INDEX, self.MODE)
+                    ctypes.byref(self.buffer_maxes[i]), ctypes.byref(self.buffer_mins[i]), self.MAX_SAMPLES, self.SEGMENT_INDEX, self.MODE)
             assert_pico_ok(self.status["setDataBuffers" + str(i)])
 
     def block(self):
@@ -92,17 +95,17 @@ class Pico_2000a(Acoustics):
                 self.SEGMENT_INDEX, self.LP_READY, self.P_PARAMETER)
         assert_pico_ok(self.status["runBlock"])
 
-        super().ready.value = 0
-        while super().ready.value == super().check.value:
-            self.status["isReady"] = ps.ps2000aIsReady(self.chandle, ctypes.byref(super().ready))
+        self.ready.value = 0
+        while self.ready.value == self.check.value:
+            self.status["isReady"] = ps.ps2000aIsReady(self.chandle, ctypes.byref(self.ready))
 
 
     def stop(self):
         ''' Stops the PicoScope. '''
-        ps.ps400aStop(self.chandle)
+        self.status["stop"] = ps.ps2000aStop(self.chandle)
         assert_pico_ok(self.status["stop"])
 
     def close(self):
         ''' Closes the PicoScope. '''
-        ps.ps2000aCloseUnit(self.chandle)
+        self.status["close"] = ps.ps2000aCloseUnit(self.chandle)
         assert_pico_ok(self.status["close"])
