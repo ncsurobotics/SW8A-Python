@@ -96,7 +96,6 @@ class Pico_2000a(Acoustics):
         while super().ready.value == super().check.value:
             self.status["isReady"] = ps.ps2000aIsReady(self.chandle, ctypes.byref(super().ready))
 
-        raise NotImplementedError()
 
     def stop(self):
         ''' Stops the PicoScope. '''

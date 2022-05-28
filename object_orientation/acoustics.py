@@ -2,10 +2,13 @@ import math
 import ctypes
 from picosdk.functions import adc2mV, assert_pico_ok
 import numpy as np
-import matplotlib.pyplot as plt
 import csv
 import os
 from datetime import date
+
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 
 class Acoustics:
 
@@ -36,24 +39,22 @@ class Acoustics:
             self.buffer_maxes.append( (ctypes.c_int16 * self.MAX_SAMPLES)() )
             self.buffer_mins.append( (ctypes.c_int16 * self.MAX_SAMPLES)() )
 
-    def initialize(self, trigger_channel = 0, trigger_frequency = 9.98e7, threshold = 0.5, auto_trigger = 0, delay = 0):
+    def initialize(self, trigger_channel = 0, sample_frequency = 9.98e7, threshold = 0.5, auto_trigger = 0, delay = 0):
         '''Sets up the physical PicoScope interface.'''
-
-        self.plotted = False
 
         self.open_unit()
         self.open_channels()
-        self.set_sample_length(trigger_frequency)
+        self.set_sample_length(sample_frequency)
         self.set_trigger(trigger_channel, threshold, auto_trigger, delay)
         self.buffers()
 
     def run(self, run_name):
         '''Collects samples from the PicoScope.'''
 
+        self.plotted = False
         self.run_name = run_name
         self.block()
         self.get_values()
-        self.adc_to_mV()
 
     def end(self):
         ''' Properly shuts down and disconnects the PicoScope. '''
@@ -84,6 +85,7 @@ class Acoustics:
             axs[i].title.set_text("Channel " + str(i))
         plt.xlabel('Time (ns)')
         plt.ylabel('Voltage (mV)')
+        fig.tight_layout()
         self.plotted = True
 
     def show_plot(self):
@@ -110,9 +112,9 @@ class Acoustics:
             writer = csv.writer(f)
             writer.writerow(titles)
             time = self.get_time()
-            for index in len(time):
+            for index in range(len(time)):
                 writer.writerow([ time[index] ] + \
-                        [ adc_max[index] for adc_max in adc_2mV_maxes ])
+                        [ adc_max[index] for adc_max in self.adc_2mV_maxes ])
 
     def time_difference(self, channel_one, channel_two):
         '''
@@ -144,7 +146,7 @@ class Acoustics:
 
     # Virtual functions
 
-    def init_run_attributes(self, period):
+    def init_run_attributes(self):
         raise NotImplementedError()
 
     def init_channels(self):
@@ -182,7 +184,7 @@ class Acoustics:
         '''
         raise NotImplementedError()
 
-    def volts_to_adc(threshold):
+    def volts_to_adc(self, threshold):
         '''Converts a target voltage to device ADC
 
         ADC is threshold / (ADC_counts = 32767) * (range = 2)
@@ -196,7 +198,7 @@ class Acoustics:
     def block(self):
         raise NotImplementedError()
 
-    def get_values():
+    def get_values(self):
         self.adc_2mV_maxes = []
         for i in range(0, len(self.channels)):
             self.adc_2mV_maxes.append(adc2mV(self.buffer_maxes[i], self.RANGE, self.MAX_ADC))
