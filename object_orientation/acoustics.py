@@ -2,6 +2,7 @@ import math
 import ctypes
 from picosdk.functions import adc2mV, assert_pico_ok
 import numpy as np
+from scipy import signal, fft 
 import matplotlib.pyplot as plt
 import csv
 import os
@@ -114,6 +115,19 @@ class Acoustics:
                 writer.writerow([ time[index] ] + \
                         [ adc_max[index] for adc_max in adc_2mV_maxes ])
 
+    def fourier(self, channel, tstep):
+        '''
+            returns dominant frequency of ping
+        '''
+        
+        mag = np.abs(fft.rfft(channel)) # rfft - positive frequencies only
+        f = fft.rfftfreq(channel_transform.size, d=tstep) # frequency axis
+        
+        mag = np.abs(channel_transform)
+        findex = channel_transform.index(max(mag))
+        
+        return f[findex]
+
     def time_difference(self, channel_one, channel_two):
         '''
             Convolutional function to determine the delta t value based on cross correlation
@@ -133,6 +147,13 @@ class Acoustics:
                     cross_correlation[n] = cross_correlation[n] + (channel_two[m] * channel_one[n + m - (k - 1)])
             cross_correlation.append(0)
 
+        return cross_correlation.index(max(cross_correlation)) # returns index NOT time 
+        
+    def time_difference_2(self, channel_one, channel_two):
+        # tdoa from scipy cross correlation function
+        # todo: try fft based cross correlation 
+        
+        cross_correlation = signal.correlate(channel_one, channel_two, mode='full', method='auto')
         return cross_correlation.index(max(cross_correlation))
 
     def pitch_yaw(self,C1,C2):
