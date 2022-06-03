@@ -124,7 +124,7 @@ class Acoustics:
         f = fft.rfftfreq(channel_transform.size, d=tstep) # frequency axis
         
         mag = np.abs(channel_transform)
-        findex = channel_transform.index(max(mag))
+        findex = np.argmax(mag)
         
         return f[findex]
 
@@ -154,7 +154,7 @@ class Acoustics:
         # todo: try fft based cross correlation 
         
         cross_correlation = signal.correlate(channel_one, channel_two, mode='full', method='auto')
-        return cross_correlation.index(max(cross_correlation))
+        return np.argmax(cross_correlation) # returns index NOT time
 
     def pitch_yaw(self,C1,C2):
         arg1 = math.sqrt( (C1 + 1) / (C2 + C1 * C2) )
