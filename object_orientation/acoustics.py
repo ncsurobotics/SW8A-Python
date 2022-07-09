@@ -129,9 +129,9 @@ class Acoustics:
         ''' Writes a plot image to a png. '''
         if not os.path.exists(str(date.today())):
             os.mkdir(str(date.today()))
-        plt.savefig(str(date.today()) + "/" + str(self.run_name) + "_" + str(self.typename) + ".png")
+        plt.savefig(str(date.today()) + "/" + str(self.run_name) + "_" + str(typename) + ".png")
 
-    def write_csv(self, typename = ""):
+    def write_csv(self):
         ''' Writes the data as a csv. '''
         if not os.path.exists(str(date.today())):
             os.mkdir(str(date.today()))
@@ -139,7 +139,7 @@ class Acoustics:
         for i in range(0, len(self.adc_2mV_maxes)):
             titles.append("Channel_" + str(i))
 
-        with open(str(date.today()) + "/" + str(self.run_name) + "_" + str(self.typename)  + ".csv", 'w') as f:
+        with open(str(date.today()) + "/" + str(self.run_name) + ".csv", 'w') as f:
             writer = csv.writer(f)
             writer.writerow(titles)
             time = self.get_time()
@@ -153,23 +153,25 @@ class Acoustics:
         '''
 
         mag = np.abs(fft.rfft(channel)) # rfft - positive frequencies only
-        f = fft.rfftfreq(channel_transform.size, d=tstep) # frequency axis
+        f = fft.rfftfreq(mag.size, d=tstep) # frequency axis
 
-        mag = np.abs(channel_transform)
         findex = np.argmax(mag)
 
         return f[findex]
 
-    def print_fourier():
+    def print_fourier(self):
+        time = self.get_time()
+        step = ( (time[1] - time[0]) * 1e-9 ) * 2
         print("\nDominant Frequencies:")
-        for i in range(0, len(self.buffer_maxes) - 1):
-            print("\tChannel " + str(i) + ": " + str(fourier))
+        for i in range(0, len(self.buffer_maxes)):
+            print("\tChannel " + str(i) + ": " + str(self.fourier(self.adc_2mV_maxes[i], step)))
         print("\n")
 
     def time_difference(self, channel_one, channel_two):
         '''
             Convolutional function to determine the delta t value based on cross correlation
-        ''' cross_correlation = [0]
+        '''
+        cross_correlation = [0]
 
         k = len(channel_one)
         i = len(channel_two)
@@ -192,14 +194,19 @@ class Acoustics:
         cross_correlation = signal.correlate(channel_one, channel_two, mode='full', method='auto')
         return np.argmax(cross_correlation) # returns index NOT time
 
+    def toda_to_time(self, toda):
+        time = self.get_time()
+        step = (time[1] - time[0]) * 1e-9
+        return (toda - self.MAX_SAMPLES) * step
+
     def print_toda(self):
         print("\nTODA Indices:")
-        for i in range(0, len(self.adc_2mV_maxes) - 1):
-            for j in range(0, len(self.adc_2mV_maxes) - 1):
+        for i in range(0, len(self.adc_2mV_maxes)):
+            for j in range(0, len(self.adc_2mV_maxes)):
                 if i != j:
                     print( "\t" + str(i) + "-" + str(j) + ": " + str( \
-                            time_difference_2(self.adc_2mV_maxes[i],\
-                            self.adc_2mV_maxes[j]) ) )
+                            self.toda_to_time(self.time_difference_2(self.adc_2mV_maxes[i],\
+                            self.adc_2mV_maxes[j]) ) ) )
         print("\n")
 
     def pitch_yaw(self,C1,C2):
