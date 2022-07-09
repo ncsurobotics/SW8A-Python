@@ -61,6 +61,7 @@ while True:
             scope.run(batch_name)
             scope.write_csv()
             scope.print_fourier()
+            scope.print_toda()
             print("Plotting...")
 
             scope.plot_time()

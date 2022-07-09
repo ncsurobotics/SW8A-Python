@@ -162,9 +162,7 @@ class Acoustics:
     def time_difference(self, channel_one, channel_two):
         '''
             Convolutional function to determine the delta t value based on cross correlation
-        '''
-
-        cross_correlation = [0]
+        ''' cross_correlation = [0]
 
         k = len(channel_one)
         i = len(channel_two)
@@ -186,6 +184,16 @@ class Acoustics:
 
         cross_correlation = signal.correlate(channel_one, channel_two, mode='full', method='auto')
         return np.argmax(cross_correlation) # returns index NOT time
+
+    def print_toda(self):
+        print("\nTODA Indices:")
+        for i in range(0, len(self.adc_2mV_maxes) - 1):
+            for j in range(0, len(self.adc_2mV_maxes) - 1):
+                if i != j:
+                    print( "\t" + str(i) + "-" + str(j) + ": " + str( \
+                            time_difference_2(self.adc_2mV_maxes[i],\
+                            self.adc_2mV_maxes[j]) ) )
+        print("\n")
 
     def pitch_yaw(self,C1,C2):
         arg1 = math.sqrt( (C1 + 1) / (C2 + C1 * C2) )
