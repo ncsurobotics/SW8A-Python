@@ -60,15 +60,16 @@ while True:
             print("Running...")
             scope.run(batch_name)
             scope.write_csv()
+            scope.print_fourier()
             print("Plotting...")
 
             scope.plot_time()
-            scope.write_plot()
-            scope.show_plot()
+            scope.write_plot("time")
+            scope.show_plot("time")
 
             scope.plot_freq()
-            scope.write_plot()
-            scope.show_plot()
+            scope.write_plot("freq")
+            scope.show_plot("freq")
 
             count = count + 1
         run_again = input("Run again? (Y/n): ")

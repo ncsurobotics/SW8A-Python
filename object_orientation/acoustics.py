@@ -118,13 +118,13 @@ class Acoustics:
         ''' Displays a plot in an X11 frame. '''
         plt.show()
 
-    def write_plot(self):
+    def write_plot(self, typename = ""):
         ''' Writes a plot image to a png. '''
         if not os.path.exists(str(date.today())):
             os.mkdir(str(date.today()))
-        plt.savefig(str(date.today()) + "/" + str(self.run_name) + ".png")
+        plt.savefig(str(date.today()) + "/" + str(self.run_name) + "_" + str(self.typename) + ".png")
 
-    def write_csv(self):
+    def write_csv(self, typename = ""):
         ''' Writes the data as a csv. '''
         if not os.path.exists(str(date.today())):
             os.mkdir(str(date.today()))
@@ -132,7 +132,7 @@ class Acoustics:
         for i in range(0, len(self.adc_2mV_maxes)):
             titles.append("Channel_" + str(i))
 
-        with open(str(date.today()) + "/" + str(self.run_name) + ".csv", 'w') as f:
+        with open(str(date.today()) + "/" + str(self.run_name) + "_" + str(self.typename)  + ".csv", 'w') as f:
             writer = csv.writer(f)
             writer.writerow(titles)
             time = self.get_time()
@@ -152,6 +152,12 @@ class Acoustics:
         findex = np.argmax(mag)
 
         return f[findex]
+
+    def print_fourier():
+        print("\nDominant Frequencies:")
+        for i in range(0, len(self.buffer_maxes) - 1):
+            print("\tChannel " + str(i) + ": " + str(fourier))
+        print("\n")
 
     def time_difference(self, channel_one, channel_two):
         '''
