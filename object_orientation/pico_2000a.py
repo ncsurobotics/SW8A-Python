@@ -90,9 +90,13 @@ class Pico_2000a(Acoustics):
             assert_pico_ok(self.status["setDataBuffers" + str(i)])
 
     def block(self):
+        self.callbackPtr = ps.BlockReadyType(self.blockready_callback)
+        #self.status["runBlock"] = ps.ps2000aRunBlock(self.chandle, self.PRE_TRIGGER_SAMPLES, \
+                #self.POST_TRIGGER_SAMPLES, self.TIMEBASE, self.OVERSAMPLE, self.TIME_INDISPOSED, \
+                #self.SEGMENT_INDEX, self.LP_READY, self.P_PARAMETER)
         self.status["runBlock"] = ps.ps2000aRunBlock(self.chandle, self.PRE_TRIGGER_SAMPLES, \
                 self.POST_TRIGGER_SAMPLES, self.TIMEBASE, self.OVERSAMPLE, self.TIME_INDISPOSED, \
-                self.SEGMENT_INDEX, self.LP_READY, self.P_PARAMETER)
+                self.SEGMENT_INDEX, self.callbackPtr, self.P_PARAMETER)
         assert_pico_ok(self.status["runBlock"])
 
         self.ready.value = 0

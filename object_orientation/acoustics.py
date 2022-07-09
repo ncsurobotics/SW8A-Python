@@ -53,14 +53,21 @@ class Acoustics:
 
         self.run_name = run_name
         self.block()
-        self.values_call()
-        self.get_values()
+
+        while self.ready.value != 1:
+            pass
 
     def end(self):
         ''' Properly shuts down and disconnects the PicoScope. '''
 
         self.stop()
         self.close()
+
+    def blockready_callback(self, handle, statusCode, param):
+        self.values_call()
+        self.get_values()
+        self.ready.value = 1
+        print("DONE!")
 
     def c_val(self, delta_a, delta_t):
         d = delta_t * 1480
