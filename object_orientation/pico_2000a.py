@@ -2,7 +2,6 @@ from acoustics import *
 from picosdk.ps2000a import ps2000a as ps
 
 class Pico_2000a(Acoustics):
-
     def __init__(self, num_channels = 4, delta_x = 0, delta_z = 0):
         super().__init__(num_channels, delta_x, delta_z)
 
@@ -18,6 +17,7 @@ class Pico_2000a(Acoustics):
     def init_channels(self):
         self.COUPLING_TYPE = 1 # PS2000a_DC
         self.RANGE = 7 # PS2000a_2V, 2V range
+        #self.RANGE = 3 # PS2000a, 100mV range
         self.ANALOG_OFFSET = 0 # in volts
         self.ENABLED = 1
 
@@ -38,11 +38,11 @@ class Pico_2000a(Acoustics):
         self.returned_max_samples = ctypes.c_int32()
         self.OVERSAMPLE = ctypes.c_int16(0) # Not used, but in API
 
-    def set_sample_length(self, frequency):
+    def set_sample_length(self, length):
         # sample interval = (TIMEBASE - 2) / 62,500,000 seconds
-        # sample freq = 62,500,000 / (TIMEBASE - 2)
+        # sample freq = 62,500,000 / (TIMEBASE - 3)
         # sample length = (sample interval) * MAX_SAMPLES
-        self.TIMEBASE = math.ceil(62.5e6 / frequency) + 2
+        self.TIMEBASE = math.ceil( (length / self.MAX_SAMPLES) * 625e5) + 2
         self.status["getTimebase2"] = ps.ps2000aGetTimebase2(self.chandle, self.TIMEBASE, \
                 self.MAX_SAMPLES, ctypes.byref(self.time_interval_ns), \
                 self.OVERSAMPLE, ctypes.byref(self.returned_max_samples), 0)
@@ -99,6 +99,10 @@ class Pico_2000a(Acoustics):
         while self.ready.value == self.check.value:
             self.status["isReady"] = ps.ps2000aIsReady(self.chandle, ctypes.byref(self.ready))
 
+    def values_call(self):
+        self.status["getValues"] = ps.ps2000aGetValues(self.chandle, self.START_INDEX, \
+                ctypes.byref(self.C_MAX_SAMPLES), self.DOWNSAMPLE_RATIO, self.DOWNSAMPLE_RATIO_MODE, \
+                0, ctypes.byref(self.overflow))
 
     def stop(self):
         ''' Stops the PicoScope. '''

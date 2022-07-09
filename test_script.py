@@ -13,16 +13,24 @@ except ValueError:
     num_channels = 4
 run = 1
 
-scope = Pico_4000a(num_channels)
+try:
+    model = int(input("Model (4 or 2): "))
+    if model == 2:
+        scope = Pico_2000a(num_channels)
+    else:
+        scope = Pico_4000a(num_channels)
+except ValueError:
+    scope = Pico_2000a(num_channels)
+
 while True:
     try:
         trigger_channel = int(input("Trigger channel: "))
     except ValueError:
         trigger_channel = 0
     try:
-        trigger_frequency = float(input("Trigger frequency (Hz): "))
+        sample_length = float(input("Sample Length (s): "))
     except ValueError:
-        trigger_frequency = 9.98e7
+        sample_length = 5e-3
     try:
         trigger_threshold = float(input("Trigger threshold (Volts): "))
     except ValueError:
@@ -33,20 +41,29 @@ while True:
         auto_trigger = 0
 
     print("Initializing...")
-    scope.initialize(trigger_channel, trigger_frequency, trigger_threshold, auto_trigger)
+    scope.initialize(trigger_channel, sample_length, trigger_threshold, auto_trigger)
     while True:
+        try:
+            batch_size = int(input("Batch num: "))
+        except ValueError:
+            batch_size = 1
         name = input("Run name: ")
         # Number from 1, when no name is provided
         if name == '':
-            name = run
+            name = str(run)
             run += 1
-            print("Run #" + str(name))
-        print("Running...")
-        scope.run(name)
-        scope.write_csv()
-        print("Plotting...")
-        scope.write_plot()
-        scope.show_plot()
+            print("Run #" + name)
+        count = 0
+        while count < int(batch_size):
+            batch_name = name + "_" + str(count)
+            print("Batch Run: " + batch_name)
+            print("Running...")
+            scope.run(batch_name)
+            scope.write_csv()
+            print("Plotting...")
+            scope.write_plot()
+            scope.show_plot()
+            count = count + 1
         run_again = input("Run again? (Y/n): ")
         if run_again in ("n","N"):
             break

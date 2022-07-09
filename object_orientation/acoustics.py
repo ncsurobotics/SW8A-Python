@@ -39,12 +39,12 @@ class Acoustics:
             self.buffer_maxes.append( (ctypes.c_int16 * self.MAX_SAMPLES)() )
             self.buffer_mins.append( (ctypes.c_int16 * self.MAX_SAMPLES)() )
 
-    def initialize(self, trigger_channel = 0, sample_frequency = 9.98e7, threshold = 0.5, auto_trigger = 0, delay = 0):
+    def initialize(self, trigger_channel = 0, sample_length = 0.1, threshold = 0.5, auto_trigger = 0, delay = 0):
         '''Sets up the physical PicoScope interface.'''
 
         self.open_unit()
         self.open_channels()
-        self.set_sample_length(sample_frequency)
+        self.set_sample_length(sample_length)
         self.set_trigger(trigger_channel, threshold, auto_trigger, delay)
         self.buffers()
 
@@ -54,6 +54,7 @@ class Acoustics:
         self.plotted = False
         self.run_name = run_name
         self.block()
+        self.values_call()
         self.get_values()
 
     def end(self):
@@ -79,13 +80,37 @@ class Acoustics:
         if self.plotted:
             return
         time = self.get_time()
-        fig, axs = plt.subplots(len(self.adc_2mV_maxes))
-        for i in range(0, len(self.adc_2mV_maxes)):
-            axs[i].plot(time, self.adc_2mV_maxes[i][:])
-            axs[i].title.set_text("Channel " + str(i))
+        if len(self.adc_2mV_maxes) > 1:
+            fig, axs = plt.subplots(len(self.adc_2mV_maxes * 2))
+            #fig, axs = plt.subplots(len(self.adc_2mV_maxes))
+            for i in range(0, len(self.adc_2mV_maxes)):
+                axs[i*2].plot(time, self.adc_2mV_maxes[i][:])
+                axs[i*2].title.set_text("Channel " + str(i))
+                #axs[i].plot(time, self.adc_2mV_maxes[i][:])
+                #axs[i].title.set_text("Channel " + str(i))
+
+                Y = np.fft.fft(self.adc_2mV_maxes[i])
+                freq = np.fft.fftfreq(len(self.adc_2mV_maxes[i]), (time[1] - time[0]) * 1e-9)
+                axs[(i*2)+1].plot(freq, np.abs(Y))
+                axs[(i*2)+1].title.set_text("Channel " + str(i) + " FFT")
+                #axs[i].plot(freq, np.abs(Y))
+                #axs[i].title.set_text("Channel " + str(i) + " FFT")
+            fig.tight_layout()
+        else:
+            #plt.plot(time, self.adc_2mV_maxes[0][:])
+            #plt.stem(time, self.adc_2mV_maxes[0][:])
+            #plt.scatter(time, self.adc_2mV_maxes[0][:])
+            fig, axs = plt.subplots(3)
+            axs[0].plot(time, self.adc_2mV_maxes[0][:])
+            axs[0].title.set_text("Time")
+
+            Y = np.fft.fft(self.adc_2mV_maxes[0])
+            freq = np.fft.fftfreq(len(self.adc_2mV_maxes[0]), (time[1] - time[0]) * 1e-9)
+            axs[1].plot(freq, np.abs(Y))
+            axs[2].plot(freq, np.angle(Y))
+            fig.tight_layout()
         plt.xlabel('Time (ns)')
         plt.ylabel('Voltage (mV)')
-        fig.tight_layout()
         self.plotted = True
 
     def show_plot(self):
@@ -187,15 +212,20 @@ class Acoustics:
     def volts_to_adc(self, threshold):
         '''Converts a target voltage to device ADC
 
+        ADC is threshold / (ADC_counts = 32512) * (range = 2)
         ADC is threshold / (ADC_counts = 32767) * (range = 2)
         '''
-        return math.ceil((threshold / 2) * 32767)
+        return math.ceil((threshold / 2) * 32512)
+        #return math.ceil((threshold / 0.1) * 32512)
 
     def buffers(self):
         '''Creates buffers to capture data.'''
         raise NotImplementedError()
 
     def block(self):
+        raise NotImplementedError()
+
+    def values_call(self):
         raise NotImplementedError()
 
     def get_values(self):

@@ -37,11 +37,14 @@ class Pico_4000a(Acoustics):
         self.time_interval_ns = ctypes.c_float()
         self.returned_max_samples = ctypes.c_int32()
 
-    def set_sample_length(self, frequency):
+    #def set_sample_length(self, frequency):
+    def set_sample_length(self, length):
         # sample interval = 12.5 ns * (TIMEBASE + 1)
         # sample freq = 80 MHz / (TIMEBASE + 1)
         # sample length = (sample interval) * MAX_SAMPLES
-        self.TIMEBASE = math.floor(80e6 / frequency) + 1
+        #self.TIMEBASE = math.floor(80e6 / frequency)
+        #self.TIMEBASE = math.floor((length - (12.5e-9 * self.MAX_SAMPLES) ) / 12.5e-9)
+        self.TIMEBASE = math.floor(length / (12.5e-9 * self.MAX_SAMPLES)) - 1
         self.status["getTimebase2"] = ps.ps4000aGetTimebase2(self.chandle, self.TIMEBASE, \
                 self.MAX_SAMPLES, ctypes.byref(self.time_interval_ns), \
                 ctypes.byref(self.returned_max_samples), 0)
@@ -85,7 +88,8 @@ class Pico_4000a(Acoustics):
         '''Creates buffers to capture data.'''
         for i in range(0, len(self.channels)):
             self.status["setDataBuffers" + str(i)] = ps.ps4000aSetDataBuffers(self.chandle, i, \
-                    ctypes.byref(self.buffer_maxes[i]), ctypes.byref(self.buffer_mins[i]), self.MAX_SAMPLES, self.SEGMENT_INDEX, self.MODE)
+                    ctypes.byref(self.buffer_maxes[i]), ctypes.byref(self.buffer_mins[i]), \
+                    self.MAX_SAMPLES, self.SEGMENT_INDEX, self.MODE)
             assert_pico_ok(self.status["setDataBuffers" + str(i)])
 
     def block(self):
@@ -98,6 +102,10 @@ class Pico_4000a(Acoustics):
         while self.ready.value == self.check.value:
             self.status["isReady"] = ps.ps4000aIsReady(self.chandle, ctypes.byref(self.ready))
 
+    def values_call(self):
+        self.status["getValues"] = ps.ps4000aGetValues(self.chandle, self.START_INDEX, \
+                ctypes.byref(self.C_MAX_SAMPLES), self.DOWNSAMPLE_RATIO, self.DOWNSAMPLE_RATIO_MODE, \
+                0, ctypes.byref(self.overflow))
 
     def stop(self):
         ''' Stops the PicoScope. '''
