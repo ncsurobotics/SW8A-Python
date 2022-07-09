@@ -61,8 +61,15 @@ while True:
             scope.run(batch_name)
             scope.write_csv()
             print("Plotting...")
+
+            scope.plot_time()
             scope.write_plot()
             scope.show_plot()
+
+            scope.plot_freq()
+            scope.write_plot()
+            scope.show_plot()
+
             count = count + 1
         run_again = input("Run again? (Y/n): ")
         if run_again in ("n","N"):

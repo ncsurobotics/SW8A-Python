@@ -3,7 +3,6 @@ import ctypes
 from picosdk.functions import adc2mV, assert_pico_ok
 import numpy as np
 from scipy import signal, fft
-import matplotlib.pyplot as plt
 import csv
 import os
 from datetime import date
@@ -31,7 +30,6 @@ class Acoustics:
         self.check = ctypes.c_int16(0)
         self.overflow = ctypes.c_int16() # create overflow location
         self.C_MAX_SAMPLES = ctypes.c_int32(self.MAX_SAMPLES) # create converted type maxSamples
-        self.plotted = False
 
         self.channels = []
         self.buffer_maxes = []
@@ -53,7 +51,6 @@ class Acoustics:
     def run(self, run_name):
         '''Collects samples from the PicoScope.'''
 
-        self.plotted = False
         self.run_name = run_name
         self.block()
         self.values_call()
@@ -75,54 +72,54 @@ class Acoustics:
 
         return np.linspace(0, (self.C_MAX_SAMPLES.value) * self.time_interval_ns.value, self.C_MAX_SAMPLES.value)
 
-    def plot(self):
+    def plot_time(self):
         ''' Creates a plot for all channels.
             Used by show_plot() and write_plot(). '''
 
-        if self.plotted:
-            return
         time = self.get_time()
         if len(self.adc_2mV_maxes) > 1:
-            fig, axs = plt.subplots(len(self.adc_2mV_maxes * 2))
-            #fig, axs = plt.subplots(len(self.adc_2mV_maxes))
+            fig, axs = plt.subplots(len(self.adc_2mV_maxes))
             for i in range(0, len(self.adc_2mV_maxes)):
-                axs[i*2].plot(time, self.adc_2mV_maxes[i][:])
-                axs[i*2].title.set_text("Channel " + str(i))
-                #axs[i].plot(time, self.adc_2mV_maxes[i][:])
-                #axs[i].title.set_text("Channel " + str(i))
-
-                Y = np.fft.fft(self.adc_2mV_maxes[i])
-                freq = np.fft.fftfreq(len(self.adc_2mV_maxes[i]), (time[1] - time[0]) * 1e-9)
-                axs[(i*2)+1].plot(freq, np.abs(Y))
-                axs[(i*2)+1].title.set_text("Channel " + str(i) + " FFT")
-                #axs[i].plot(freq, np.abs(Y))
-                #axs[i].title.set_text("Channel " + str(i) + " FFT")
+                axs[i].plot(time, self.adc_2mV_maxes[i][:])
+                axs[i].title.set_text("Channel " + str(i))
             fig.tight_layout()
         else:
-            #plt.plot(time, self.adc_2mV_maxes[0][:])
-            #plt.stem(time, self.adc_2mV_maxes[0][:])
-            #plt.scatter(time, self.adc_2mV_maxes[0][:])
-            fig, axs = plt.subplots(3)
-            axs[0].plot(time, self.adc_2mV_maxes[0][:])
-            axs[0].title.set_text("Time")
-
-            Y = np.fft.fft(self.adc_2mV_maxes[0])
-            freq = np.fft.fftfreq(len(self.adc_2mV_maxes[0]), (time[1] - time[0]) * 1e-9)
-            axs[1].plot(freq, np.abs(Y))
-            axs[2].plot(freq, np.angle(Y))
-            fig.tight_layout()
+            plt.plot(time, self.adc_2mV_maxes[0][:])
+            plt.title.set_text("Time")
         plt.xlabel('Time (ns)')
         plt.ylabel('Voltage (mV)')
-        self.plotted = True
+
+    def plot_freq(self):
+        ''' Creates a plot for all channels.
+            Used by show_plot() and write_plot(). '''
+
+        time = self.get_time()
+        if len(self.adc_2mV_maxes) > 1:
+            fig, axs = plt.subplots(len(self.adc_2mV_maxes))
+            for i in range(0, len(self.adc_2mV_maxes)):
+                Y = np.fft.fft(self.adc_2mV_maxes[i])
+                freq = np.fft.fftfreq(len(self.adc_2mV_maxes[i]), (time[1] - time[0]) * 1e-9)
+                axs[i].plot(freq, np.abs(Y))
+                axs[i].title.set_text("Channel " + str(i))
+            fig.tight_layout()
+        else:
+            fig, axs = plt.subplots(2)
+            Y = np.fft.fft(self.adc_2mV_maxes[0])
+            freq = np.fft.fftfreq(len(self.adc_2mV_maxes[0]), (time[1] - time[0]) * 1e-9)
+            axs[0].plot(freq, np.abs(Y))
+            axs[0].title.set_text("Magnitude")
+            axs[1].plot(freq, np.angle(Y))
+            axs[1].title.set_text("Phase")
+            fig.tight_layout()
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel('Magnitude')
 
     def show_plot(self):
         ''' Displays a plot in an X11 frame. '''
-        self.plot()
         plt.show()
 
     def write_plot(self):
         ''' Writes a plot image to a png. '''
-        self.plot()
         if not os.path.exists(str(date.today())):
             os.mkdir(str(date.today()))
         plt.savefig(str(date.today()) + "/" + str(self.run_name) + ".png")
