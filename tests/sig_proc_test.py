@@ -1,3 +1,6 @@
+import sys
+sys.path.append('../object_orientation/')
+
 from acoustics import Acoustics
 import numpy as np
 import matplotlib.pyplot as plt
