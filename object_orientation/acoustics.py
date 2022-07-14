@@ -65,6 +65,7 @@ class Acoustics:
     def c_val(self, delta_a, delta_t):
         d = delta_t * 1480
         c = (d**2) / ( (delta_a**2) - d**2)
+        return c
 
     def get_time(self):
         ''' Returns the linearly spaced time.
